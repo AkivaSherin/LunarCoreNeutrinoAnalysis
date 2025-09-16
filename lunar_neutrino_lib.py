@@ -388,10 +388,12 @@ def find_confidence_interval_minimum_test_statistic(percent, test_hypothesis_den
     return minimum_test_statistic
 
 
-# sets up data for the function make_heatmap_confidence_interval_contour_plot, so that we can make a contour plot
-# real ratio and real radius are what we imagine are the real ratio and radius of the moon (to see whether we could notice it_
-# automatically sets contours at 30 60 and 90 percent confidence
-def make_heatmap_confidence_interval_data(real_ratio, real_radius, num_neutrinos):
+
+# makes a confidence interval plot, but instead creates three contours (at 30, 60 and 90 pct confidence)
+# this is overlayed on a heatmap showing the test statistic of each parameter combination
+def make_heatmap_confidence_interval_plot(real_ratio, real_radius, num_neutrinos, save_figure=True):
+    # CHANGE FONTSIZE (fontsize=12)
+    #first sets up the data
     real_data = make_mock_data(real_ratio, real_radius, num_neutrinos)
     core_mantle_density_ratios = np.linspace(0, 30, 10)
     core_radii = np.linspace(0, 500, 10)  # in km
@@ -403,34 +405,26 @@ def make_heatmap_confidence_interval_data(real_ratio, real_radius, num_neutrinos
             new_test_statistic = find_test_statistic(core_mantle_density_ratio, core_radius, real_data)
             ratio_radius_test_statistic_tuples.append((core_mantle_density_ratio, core_radius, new_test_statistic))
 
-    tuple_ratios, tuple_radii, tuple_test_statistics = zip(*ratio_radius_test_statistic_tuples)
+    ratios, radii, test_statistics = zip(*ratio_radius_test_statistic_tuples)
 
     best_fit_density_ratio, best_fit_radius, best_fit_test_statistic = find_best_fit_parameters(real_data)
 
-    thirty_percent_conf_minimum_test_statistic = find_confidence_interval_minimum_test_statistic(30,
+    thirty_pct_min_stat = find_confidence_interval_minimum_test_statistic(30,
                                                                                                  best_fit_density_ratio,
                                                                                                  best_fit_radius,
                                                                                                  num_neutrinos, 10)
 
-    sixty_percent_conf_minimum_test_statistic = find_confidence_interval_minimum_test_statistic(60,
+    sixty_pct_min_stat = find_confidence_interval_minimum_test_statistic(60,
                                                                                                 best_fit_density_ratio,
                                                                                                 best_fit_radius,
                                                                                                 num_neutrinos, 10)
 
-    ninety_percent_conf_minimum_test_statistic = find_confidence_interval_minimum_test_statistic(90,
+    ninety_pct_min_stat = find_confidence_interval_minimum_test_statistic(90,
                                                                                                  best_fit_density_ratio,
                                                                                                  best_fit_radius,
                                                                                                  num_neutrinos, 10)
 
-    return tuple_ratios, tuple_radii, tuple_test_statistics, thirty_percent_conf_minimum_test_statistic, sixty_percent_conf_minimum_test_statistic, ninety_percent_conf_minimum_test_statistic
-
-
-# makes a confidence interval plot, but instead creates three contours (at 30, 60 and 90 pct confidence)
-# this is overlayed on a heatmap showing the test statistic of each parameter combination
-# use the function make_confidence_interval_data() to make the input for this function
-def make_heatmap_confidence_interval_plot(ratios, radii, test_statistics, thirty_pct_min_stat, sixty_pct_min_stat,
-                                          ninety_pct_min_stat, real_ratio, real_radius, num_neutrinos, save_figure=True):
-    # CHANGE FONTSIZE (fontsize=12)
+    #now plotting the data
 
     max_test_statistic = max(test_statistics)
     delta_test_statistics = []
@@ -538,7 +532,9 @@ def make_heatmap_confidence_interval_plot(ratios, radii, test_statistics, thirty
 
 
 """
-    Neutrino flavor simulation
+
+    Neutrino flavor oscillation simulation
+    
 """
 
 
