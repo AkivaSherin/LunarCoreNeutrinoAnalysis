@@ -528,7 +528,7 @@ def make_heatmap_confidence_interval_plot(real_ratio, real_radius, num_neutrinos
         plt.savefig(
             "heatmap_confidence_interval_plot_ratio" + str(real_ratio) + "_radius" + str(real_radius) + "_neutrinos" + str(
                 num_neutrinos) + ".png")
-    plt.show()
+    #plt.show()
 
 
 """
