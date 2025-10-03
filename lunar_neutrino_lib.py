@@ -367,7 +367,7 @@ def find_significance(hypothesis_test_statistic, num_mock_data_sets, neutrinos_p
 
 
 # given a test hypothesis ratio and radius, calculates the minimum test statistic to consider for a given confidence interval
-def find_confidence_interval_minimum_test_statistic(percent, test_hypothesis_density_ratio, test_hypothesis_radius,
+def find_confidence_interval_minimum_test_statistics(percentiles, test_hypothesis_density_ratio, test_hypothesis_radius,
                                                     num_mock_data_sets, neutrinos_per_data_set):
     test_hypothesis_data_sets = make_mock_data_sets(test_hypothesis_density_ratio, test_hypothesis_radius,
                                                     num_mock_data_sets, neutrinos_per_data_set)
@@ -383,9 +383,13 @@ def find_confidence_interval_minimum_test_statistic(percent, test_hypothesis_den
         best_fit_radii.append(new_radius)
         best_fit_test_statistics.append(new_test_statistic)
 
-    minimum_test_statistic = np.percentile(best_fit_test_statistics, 100 - percent)
+    minimum_test_statistics = []
 
-    return minimum_test_statistic
+    for percentile in percentiles:
+        minimum_test_statistics.append(np.percentile(best_fit_test_statistics, 100 - percentile))
+
+
+    return tuple(minimum_test_statistics)
 
 
 
@@ -409,20 +413,11 @@ def make_heatmap_confidence_interval_plot(real_ratio, real_radius, num_neutrinos
 
     best_fit_density_ratio, best_fit_radius, best_fit_test_statistic = find_best_fit_parameters(real_data)
 
-    smallest_pct_min_stat = find_confidence_interval_minimum_test_statistic(percentiles[0],
+    smallest_pct_min_stat, middle_pct_min_stat, biggest_pct_min_stat = find_confidence_interval_minimum_test_statistics(percentiles,
                                                                                                  best_fit_density_ratio,
                                                                                                  best_fit_radius,
-                                                                                                 num_neutrinos, 10)
+                                                                                                 1000, num_neutrinos)
 
-    middle_pct_min_stat = find_confidence_interval_minimum_test_statistic(percentiles[1],
-                                                                                                best_fit_density_ratio,
-                                                                                                best_fit_radius,
-                                                                                                num_neutrinos, 10)
-
-    biggest_pct_min_stat = find_confidence_interval_minimum_test_statistic(percentiles[2],
-                                                                                                 best_fit_density_ratio,
-                                                                                                 best_fit_radius,
-                                                                                                 num_neutrinos, 10)
 
     #now plotting the data
 
