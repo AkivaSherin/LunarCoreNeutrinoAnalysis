@@ -6,7 +6,7 @@ from scipy.integrate import odeint, quad
 import math
 import pandas as pd
 from scipy.interpolate import interp1d
-import pickle
+import
 from scipy.interpolate import griddata
 from scipy.integrate import odeint, quad
 
@@ -391,7 +391,7 @@ def find_confidence_interval_minimum_test_statistic(percent, test_hypothesis_den
 
 # makes a confidence interval plot, but instead creates three contours (at 30, 60 and 90 pct confidence)
 # this is overlayed on a heatmap showing the test statistic of each parameter combination
-def make_heatmap_confidence_interval_plot(real_ratio, real_radius, num_neutrinos, save_figure=True):
+def make_heatmap_confidence_interval_plot(real_ratio, real_radius, num_neutrinos, percentiles=(30,60,90), save_figure=True):
     # CHANGE FONTSIZE (fontsize=12)
     #first sets up the data
     real_data = make_mock_data(real_ratio, real_radius, num_neutrinos)
@@ -409,17 +409,17 @@ def make_heatmap_confidence_interval_plot(real_ratio, real_radius, num_neutrinos
 
     best_fit_density_ratio, best_fit_radius, best_fit_test_statistic = find_best_fit_parameters(real_data)
 
-    thirty_pct_min_stat = find_confidence_interval_minimum_test_statistic(30,
+    smallest_pct_min_stat = find_confidence_interval_minimum_test_statistic(percentiles[0],
                                                                                                  best_fit_density_ratio,
                                                                                                  best_fit_radius,
                                                                                                  num_neutrinos, 10)
 
-    sixty_pct_min_stat = find_confidence_interval_minimum_test_statistic(60,
+    middle_pct_min_stat = find_confidence_interval_minimum_test_statistic(percentiles[1],
                                                                                                 best_fit_density_ratio,
                                                                                                 best_fit_radius,
                                                                                                 num_neutrinos, 10)
 
-    ninety_pct_min_stat = find_confidence_interval_minimum_test_statistic(90,
+    biggest_pct_min_stat = find_confidence_interval_minimum_test_statistic(percentiles[2],
                                                                                                  best_fit_density_ratio,
                                                                                                  best_fit_radius,
                                                                                                  num_neutrinos, 10)
@@ -465,21 +465,21 @@ def make_heatmap_confidence_interval_plot(real_ratio, real_radius, num_neutrinos
 
     linestyles_dict = {
         -100: '--',
-        ninety_pct_min_stat: '--',
-        sixty_pct_min_stat: '-.',
-        thirty_pct_min_stat: ':',
+        biggest_pct_min_stat: '--',
+        middle_pct_min_stat: '-.',
+        smallest_pct_min_stat: ':',
         100: '-'
     }
 
     # contour levels must be increasing
-    if (sixty_pct_min_stat <= ninety_pct_min_stat) or (thirty_pct_min_stat <= sixty_pct_min_stat):
+    if (middle_pct_min_stat <= biggest_pct_min_stat) or (smallest_pct_min_stat <= middle_pct_min_stat):
         print("error: contour levels werent increasing")
         print("tried to make" + "heatmap_confidence_interval_plot_ratio" + str(real_ratio) + "_radius" + str(
             real_radius) + "_neutrinos" + str(num_neutrinos))
         return (1)
 
     contours = plt.contour(ratio_grid, radii_grid, test_statistics_grid,
-                           levels=[-100, ninety_pct_min_stat, sixty_pct_min_stat, thirty_pct_min_stat, 100],
+                           levels=[-100, biggest_pct_min_stat, middle_pct_min_stat, smallest_pct_min_stat, 100],
                            colors=['k', 'k'],
                            linestyles=["--", "--", "-.", ":", "--"])
 
@@ -511,9 +511,9 @@ def make_heatmap_confidence_interval_plot(real_ratio, real_radius, num_neutrinos
     from matplotlib.lines import Line2D
 
     custom_lines = [
-        Line2D([0], [0], color='black', linestyle=':', label='30% confidence'),
-        Line2D([0], [0], color='black', linestyle='-.', label='60% confidence'),
-        Line2D([0], [0], color='black', linestyle='--', label='90% confidence'),
+        Line2D([0], [0], color='black', linestyle=':', label=str(smallest_pct_min_stat) + '% confidence'),
+        Line2D([0], [0], color='black', linestyle='-.', label=str(middle_pct_min_stat) +'% confidence'),
+        Line2D([0], [0], color='black', linestyle='--', label=str(biggest_pct_min_stat) +'% confidence'),
     ]
 
     # Add manual legend
@@ -527,7 +527,7 @@ def make_heatmap_confidence_interval_plot(real_ratio, real_radius, num_neutrinos
     if save_figure:
         plt.savefig(
             "heatmap_confidence_interval_plot_ratio" + str(real_ratio) + "_radius" + str(real_radius) + "_neutrinos" + str(
-                num_neutrinos) + ".png")
+                num_neutrinos) + "_contours" + "_".join(map(str, percentiles)) + ".png")
     #plt.show()
 
 
