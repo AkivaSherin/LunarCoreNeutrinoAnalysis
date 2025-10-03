@@ -511,9 +511,9 @@ def make_heatmap_confidence_interval_plot(real_ratio, real_radius, num_neutrinos
     from matplotlib.lines import Line2D
 
     custom_lines = [
-        Line2D([0], [0], color='black', linestyle=':', label=str(smallest_pct_min_stat) + '% confidence'),
-        Line2D([0], [0], color='black', linestyle='-.', label=str(middle_pct_min_stat) +'% confidence'),
-        Line2D([0], [0], color='black', linestyle='--', label=str(biggest_pct_min_stat) +'% confidence'),
+        Line2D([0], [0], color='black', linestyle=':', label=str(percentiles[0]) + '% confidence'),
+        Line2D([0], [0], color='black', linestyle='-.', label=str(percentiles[1]) +'% confidence'),
+        Line2D([0], [0], color='black', linestyle='--', label=str(percentiles[2]) +'% confidence'),
     ]
 
     # Add manual legend
