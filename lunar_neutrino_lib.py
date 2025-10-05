@@ -70,7 +70,7 @@ def make_neutrino_flux_function_using_mc():
     # So we calculate this, and then adjust our histogram interpolation to have the correct flux magnitude (and not just shape)
     # Assumes a 1-1 ratio of cosmic rays to neutrinos
     total_count = quad(neutrino_count_interp, log_min_cr_energy - 1.45, log_max_cr_energy - 0.55, limit=1000)[
-        0]  # not ideal that this gives integration errors but I think its alright
+        0]  # not ideal that this gives integration errors but I think it's alright
     total_cosmic_rays = quad(get_cosmic_ray_flux, log_min_cr_energy, log_max_cr_energy)[0]
     scale_factor = total_cosmic_rays / total_count
 
@@ -617,7 +617,7 @@ def moon_deriv_three_flavor(amp,x,E_GeV,del13,y,z, density_function):
     s12 = np.sin(Th12)
     c12 = np.cos(Th12)
     s23 = np.sin(Th23)
-    c23 = np.cos(Th23)
+    c23  = np.cos(Th23)
     s13 = np.sin(Th13)
     c13 = np.cos(Th13)
 
@@ -692,7 +692,7 @@ def monte_carlo_uniform_core(energy, core_mantle_density_ratio, core_radius):  #
     t_prob = 0
     scale_factor = 0
 
-    radii = np.linspace(0, r_moon, 50)
+    radii = np.linspace(0, r_moon, 1000)
     for radius in radii:
         after_moon = three_flavor_prob_any_moon_density(energy, radius, 0, density_function)
         e_prob += after_moon[1][-1] * radius
