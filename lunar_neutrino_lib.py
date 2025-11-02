@@ -315,8 +315,8 @@ def find_test_statistic(core_mantle_density_ratio_test_hypothesis, core_radius_t
 # then returns the best fit density ratio and radius by maximizing test statistic across a range of parameters
 # data is a list of log neutrino energies
 def find_best_fit_parameters(data):
-    core_mantle_density_ratios = np.linspace(0, 30, 10)
-    core_radii = np.linspace(0, 500, 10)  # in km
+    core_mantle_density_ratios = np.linspace(1, 15, 100)
+    core_radii = np.linspace(200, 600, 100)  # in km
 
     first_test = True  # whether or not we have tested a pair of parameters yet
     best_fit_test_statistic = 0
