@@ -315,7 +315,7 @@ def find_test_statistic(core_mantle_density_ratio_test_hypothesis, core_radius_t
 # then returns the best fit density ratio and radius by maximizing test statistic across a range of parameters
 # data is a list of log neutrino energies
 def find_best_fit_parameters(data):
-    core_mantle_density_ratios = np.linspace(1, 15, 10)
+    core_mantle_density_ratios = np.linspace(1, 15, 10) #eventually change to 100
     core_radii = np.linspace(200, 600, 10)  # in km
 
     first_test = True  # whether or not we have tested a pair of parameters yet
@@ -399,8 +399,8 @@ def make_heatmap_confidence_interval_plot(real_ratio, real_radius, num_neutrinos
     # CHANGE FONTSIZE (fontsize=12)
     #first sets up the data
     real_data = make_mock_data(real_ratio, real_radius, num_neutrinos)
-    core_mantle_density_ratios = np.linspace(0, 30, 10)
-    core_radii = np.linspace(0, 500, 10)  # in km
+    core_mantle_density_ratios = np.linspace(1, 15, 10)
+    core_radii = np.linspace(200, 600, 10)  # in km
 
     ratio_radius_test_statistic_tuples = []  # list of tuples with corresponding ratio, radius and test statistic
 
