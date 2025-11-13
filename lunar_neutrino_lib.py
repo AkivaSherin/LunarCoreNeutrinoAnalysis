@@ -519,11 +519,36 @@ def make_heatmap_confidence_interval_plot(real_ratio, real_radius, num_neutrinos
     plt.ylabel(r"$R_{core}$ (km) " + "(True = " + str(real_radius) + ")")
     plt.title("Heatmap Confidence Interval Plot")
     plt.annotate('num neutrinos = ' + str(num_neutrinos), xy=(1.05, 1.02), xycoords='axes fraction', ha='center')
+    plt.annotate('\"True\" Value',
+                 (real_ratio, real_radius),
+                 textcoords="offset points",
+                 xytext=(10, 10),  # offset for text placement
+                 ha='left',
+                 fontsize=10,
+                 arrowprops=dict(arrowstyle='->', color='black'))
+
     if save_figure:
         plt.savefig(
             "heatmap_confidence_interval_plot_ratio" + str(real_ratio) + "_radius" + str(real_radius) + "_neutrinos" + str(
                 num_neutrinos) + "_contours" + "_".join(map(str, percentiles)) + ".png")
     #plt.show()
+
+
+def make_scatter_plot(real_ratio, real_radius, num_neutrinos, num_scatters):
+    for i in range(num_scatters):
+        mock_data = make_mock_data(real_ratio, real_radius, num_neutrinos)
+        best_fit_ratio, best_fit_radius, test_statistic = find_best_fit_parameters(mock_data)
+        plt.scatter(best_fit_ratio, best_fit_radius, marker='x', color='black', s=100)
+
+    plt.xlabel(r"$\rho_{core} / \rho_{mantle}$(True = " + str(real_ratio) + ")")
+    plt.ylabel(r"$R_{core}$ (km) " + "(True = " + str(real_radius) + ")")
+    plt.title("Best Fit Scatter Plot")
+    plt.annotate('num neutrinos = ' + str(num_neutrinos), xy=(1.05, 1.02), xycoords='axes fraction', ha='center')
+
+    plt.savefig(
+        "best_fit_scatter_plot_ratio" + str(real_ratio) + "_radius" + str(
+            real_radius) + "_neutrinos" + str(
+            num_neutrinos) + "_scatters" + str(num_scatters) + ".png")
 
 
 """
