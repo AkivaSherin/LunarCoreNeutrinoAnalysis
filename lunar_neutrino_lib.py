@@ -544,7 +544,13 @@ def make_scatter_plot(real_ratio, real_radius, num_neutrinos, num_scatters):
     plt.ylabel(r"$R_{core}$ (km) " + "(True = " + str(real_radius) + ")")
     plt.title("Best Fit Scatter Plot")
     plt.annotate('num neutrinos = ' + str(num_neutrinos), xy=(1.05, 1.02), xycoords='axes fraction', ha='center')
-
+    plt.annotate('\"True\" Value',
+                 (real_ratio, real_radius),
+                 textcoords="offset points",
+                 xytext=(10, 10),  # offset for text placement
+                 ha='left',
+                 fontsize=10,
+                 arrowprops=dict(arrowstyle='->', color='red'))
     plt.savefig(
         "best_fit_scatter_plot_ratio" + str(real_ratio) + "_radius" + str(
             real_radius) + "_neutrinos" + str(
