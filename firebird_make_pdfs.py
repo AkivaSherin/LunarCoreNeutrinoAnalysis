@@ -8,15 +8,62 @@ import matplotlib.pyplot as plt
 plt.figure()
 
 ratios = [1, 5, 15]
-radius = 400
+fixed_radius = 600
 log_energies = np.linspace(0,0.99, 100) # log GeV
 
 for ratio in ratios:
-    pdf = muon_pdf_spline(ratio, radius)
-    plt.plot(log_energies, pdf(log_energies), label=fr"ρ_c / ρ_m = {ratio:g}")
+    pdf = muon_pdf_spline(ratio, fixed_radius)
+    plt.plot(log_energies, pdf(log_energies), label=str(ratio))
 
-plt.xlabel("Energy ")
+plt.xlabel("Energy (log GeV)")
 plt.ylabel("Probability")
-plt.title("Muon detection PDF for core radius = " + str(radius))
+plt.title("Muon detection PDF for core radius = " + str(fixed_radius) + " km")
 plt.legend(title="Density Ratios")
-plt.savefig("muon_detection_pdfs_by_ratios.png")
+plt.savefig("muon_detection_pdfs_by_ratios_radius" + str(fixed_radius) + ".png")
+
+plt.figure()
+
+ratios = [1, 5, 15]
+fixed_radius = 400
+log_energies = np.linspace(0,0.99, 100) # log GeV
+
+for ratio in ratios:
+    pdf = muon_pdf_spline(ratio, fixed_radius)
+    plt.plot(log_energies, pdf(log_energies), label=str(ratio))
+
+plt.xlabel("Energy (log GeV)")
+plt.ylabel("Probability")
+plt.title("Muon detection PDF for core radius = " + str(fixed_radius) + " km")
+plt.legend(title="Density Ratios")
+plt.savefig("muon_detection_pdfs_by_ratios_radius" + str(fixed_radius) + ".png")
+
+
+plt.figure()
+
+fixed_ratio = 5
+radii = [200, 400, 600]
+
+for radius in radii:
+    pdf = muon_pdf_spline(fixed_ratio, radius)
+    plt.plot(log_energies, pdf(log_energies), label=str(radius))
+
+plt.xlabel("Energy (log GeV)")
+plt.ylabel("Probability")
+plt.title("Muon detection PDF for core ratio = " + str(fixed_ratio))
+plt.legend(title="Radii (km)")
+plt.savefig("muon_detection_pdfs_by_radii_ratio" + str(fixed_ratio) + ".png")
+
+plt.figure()
+
+fixed_ratio = 15
+radii = [200, 400, 600]
+
+for radius in radii:
+    pdf = muon_pdf_spline(fixed_ratio, radius)
+    plt.plot(log_energies, pdf(log_energies), label=str(radius))
+
+plt.xlabel("Energy (log GeV)")
+plt.ylabel("Probability")
+plt.title("Muon detection PDF for core ratio = " + str(fixed_ratio))
+plt.legend(title="Radii (km)")
+plt.savefig("muon_detection_pdfs_by_radii_ratio" + str(fixed_ratio) + ".png")
