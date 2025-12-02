@@ -33,7 +33,7 @@ def decide_energy_loss(log_energy):
 # Differential neutrino flux is in units of neutrinos/log(GeV)
 def make_neutrino_flux_function_using_mc():
     # range of cosmic ray energies we care about
-    log_min_cr_energy = 0
+    log_min_cr_energy = -1
     log_max_cr_energy = 2
 
     # range of possible cosmic ray fluxes
@@ -130,7 +130,7 @@ def get_aeff_upgrade(log_energy): #returns effective are of the updated ice cube
 # the upgrade aeff graph we get from IceCube is a step function
 # this returns a smoother interpolation so that graphs don't come out looking strange
 def make_aeff_upgrade_interp():
-    log_aeff_energies = np.linspace(-2, 1.9, 30)
+    log_aeff_energies = np.linspace(-3, 1.9, 30)
     aeffs = []
 
     for log_energy in log_aeff_energies:
@@ -184,7 +184,7 @@ def get_diff_interactions(log_neu_energy):
 # core_radius input is in km
 
 def make_muon_detections_pdf(core_mantle_density_ratio, core_radius):
-    log_energies = np.linspace(0, 0.999, 100)
+    log_energies = np.linspace(-1, 1, 100)
     detection_rate = []
     for log_energy in log_energies:
         neutrinos_detected_ignoring_oscillation = get_diff_interactions(log_energy)  # this is per log GeV
@@ -196,7 +196,7 @@ def make_muon_detections_pdf(core_mantle_density_ratio, core_radius):
     detections_interp = interp1d(log_energies, detection_rate, kind='linear')
 
     # normalizing the pdf
-    total_detections = quad(detections_interp, 0, 0.999, limit=1000)[0]
+    total_detections = quad(detections_interp, -1, 1, limit=1000)[0]
 
     def pdf(log_e):
         return detections_interp(log_e) / total_detections
@@ -216,10 +216,8 @@ try:
 except:
     muon_pdf_splines_catalog = dict()
     #this is slow but should only happen once
-    new_get_neutrino_flux = make_neutrino_flux_function_using_mc()
-    new_get_aeff_upgrade_interpolated = make_aeff_upgrade_interp()
 
-    starter_muon_pdf = make_muon_detections_pdf(new_get_neutrino_flux, new_get_aeff_upgrade_interpolated, 1, 330)
+    starter_muon_pdf = make_muon_detections_pdf(1, 330)
     muon_pdf_splines_catalog['core_mantle_density_ratio'] = [1]
     muon_pdf_splines_catalog['core_radius'] = [330]
     muon_pdf_splines_catalog['spline'] = [starter_muon_pdf]
@@ -277,7 +275,7 @@ def make_mock_data(core_mantle_density_ratio, core_radius, num_neutrinos):
 
     log_energies = []
     while len(log_energies) < num_neutrinos:
-        random_log_energy = random.uniform(0, 0.999)
+        random_log_energy = random.uniform(-1, 1)
         random_probability = random.uniform(0, 3)
 
         if (random_probability < pdf(random_log_energy)):
