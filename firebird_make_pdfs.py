@@ -9,7 +9,7 @@ plt.figure()
 
 ratios = [1, 5, 15]
 fixed_radius = 600
-log_energies = np.linspace(0,0.99, 100) # log GeV
+log_energies = np.linspace(-1,1, 100) # log GeV
 
 for ratio in ratios:
     pdf = muon_pdf_spline(ratio, fixed_radius)
@@ -25,7 +25,6 @@ plt.figure()
 
 ratios = [1, 5, 15]
 fixed_radius = 400
-log_energies = np.linspace(0,0.99, 100) # log GeV
 
 for ratio in ratios:
     pdf = muon_pdf_spline(ratio, fixed_radius)
