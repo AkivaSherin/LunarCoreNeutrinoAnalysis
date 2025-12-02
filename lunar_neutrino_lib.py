@@ -10,6 +10,192 @@ import pickle
 from scipy.interpolate import griddata
 from scipy.integrate import odeint, quad
 
+"""
+
+    Neutrino flavor oscillation simulation
+
+"""
+
+
+# models neutrino travel to earth using approximation form gaisser textbook
+def decoherence_travel_earth(e_prob, m_prob, t_prob):
+    p = ([.55, .25, .2],
+         [0.25, 0.37, 0.38],
+         [0.2, 0.38, 0.42])
+    initial_ratios = ([e_prob, m_prob, t_prob])
+    product = np.matmul(p, initial_ratios)
+    return product
+
+
+# this returns a density function that gives lunar density as a function of x, y, z for a given core-mantle density ratio
+# x y and z are in km, and the center of the moon is 0,0,0
+def make_density_function_from_ratio(core_mantle_density_ratio, core_radius):  # core radius in km
+    r_moon = 1737 - 10  # km
+    r_moon_cm = r_moon * 10 ** 5
+    crust_to_core_distance = 1700 * 10 ** 5  # cm
+    r_core_cm = core_radius * 10 ** 5  # cm
+
+    m_moon = 7.342 * 10 ** 25  # grams
+    m_crust = (4 / 3) * math.pi * (r_moon_cm ** 3 - crust_to_core_distance ** 3)
+    m_moon_without_crust = m_moon - m_crust
+    V_core = (4 / 3) * math.pi * (r_core_cm ** 3)
+    V_mantle = (4 / 3) * math.pi * (crust_to_core_distance ** 3 - r_core_cm)
+
+    mantle_density = m_moon_without_crust / (V_core * core_mantle_density_ratio + V_mantle)
+    core_density = mantle_density * core_mantle_density_ratio
+
+    def density_function(x, y, z, d_core=core_density, d_mantle=mantle_density):
+        r = np.sqrt(x ** 2 + y ** 2 + z ** 2)
+        if r < core_radius:  # core
+            # print("core density" + str(d_core))
+            return d_core
+        if r < 1700:  # mantle
+            # print("mantle density" + str(d_mantle))
+            return d_mantle
+        else:
+            return 2.55  # crust density is known pretty accurately
+
+    return density_function
+
+
+# convers m to e nue ratio into list of probability amplitudes that we can use in our oscillation code
+# for now we assume 2 muon : 1 electron ratio
+def turn_flavor_ratios_into_probability_amplitudes(m_to_e_ratio):
+    # set initial amplitudes
+    m_amp = m_to_e_ratio
+    e_amp = 1
+    # normalize
+    initial_magnitude = math.sqrt(m_amp ** 2 + e_amp ** 2)
+
+    m_amp = m_amp / initial_magnitude
+    e_amp = e_amp / initial_magnitude
+
+    return [e_amp, 0, m_amp, 0, 0, 0]
+
+
+# this is modified code given to me by Prof. Hyde
+# simulates neutrino oscillation, but specialized for moon with variable density
+# y, z are fixed values, while neutrino travels parallel to x-axis
+# density function takes x, y, z (location relative to center of moon) and returns moon's density in g/cm^3
+
+# gives oscillation derivative, but specialized for moon.
+# x, y, z is location relative to center of moon
+# density function takes this location and returns a density
+
+# Define mass-squared difference (in eV^2) and mixing angle (rad)
+Th12 = 34.5 * np.pi / 180
+Th13 = 8.45 * np.pi / 180
+Th23 = 47.7 * np.pi / 180  # assuming normal mass ordering
+Dmsq21 = 7.55 * 10 ** (-5)
+Dmsq31 = 2.50 * 10 ** (-3)  # assuming normal mass ordering
+
+
+def moon_deriv_three_flavor(amp, x, E_GeV, del13, y, z, density_function):
+    # Set mass values
+    mass1 = 0.0
+    mass2 = Dmsq21
+    mass3 = Dmsq31
+
+    ## Elements of flavor-basis Hamiltonian
+
+    # Mixing matrix (unitary change of basis between mass and flavor)
+    # Sines and Cosines of Mixing Angles
+    s12 = np.sin(Th12)
+    c12 = np.cos(Th12)
+    s23 = np.sin(Th23)
+    c23 = np.cos(Th23)
+    s13 = np.sin(Th13)
+    c13 = np.cos(Th13)
+
+    ## Elements of flavor-basis Hamiltonian
+
+    # Mixing matrix
+    U12 = np.array([(c12, s12, 0), (-s12, c12, 0), (0, 0, 1)])
+    U23 = np.array([(1, 0, 0), (0, c23, s23), (0, -s23, c23)])
+    U13 = np.array([(c13, 0, s13 * np.exp(0. - 1.j * del13)), (0, 1, 0), (-s13 * np.exp(0. + 1.j * del13), 0, c13)],
+                   dtype=complex)
+    Uint = np.dot(U13, U12)
+    U = np.dot(U23, Uint)
+
+    UT = np.transpose(U)
+    Udagger = np.conjugate(UT)
+
+    # Mass basis Hamiltonian
+    Hmass = np.array([(0, 0, 0), (0, mass2 / (2 * E_GeV), 0), (0, 0, mass3 / (2 * E_GeV))])
+
+    # Flavor-basis Hamiltonian, without matter
+    Hmid = np.dot(Hmass, Udagger)
+    Hflav0 = np.dot(U, Hmid)
+
+    # Full flavor-basis Hamiltonian. V_int represents the contribution to
+    # potential due to charged-current neutrino-electron interactions.
+    # Neutral current factors out of V_int and doesn't affect oscillations.
+    density = density_function(x, y, z)
+    vcc = density * 0.000193
+    Vee = 1.0
+    Vint = vcc * np.array([(Vee, 0, 0), (0, 0, 0), (0, 0, 0)], dtype=complex)
+    Hflav = 5.1 * (Hflav0 + Vint)  # factor of 5.1 comes from units... see notes
+
+    # Input array "amp" is four values: the real and imaginary components of
+    # each flavor amplitude. Note that "j" instead of "i" is used.
+    eAmp = amp[0] + 1.j * amp[1]
+    muAmp = amp[2] + 1.j * amp[3]
+    tauAmp = amp[4] + 1.j * amp[5]
+
+    # This uses the (flavor-basis) Hamiltonian to define the time-evolution
+    deAmpdx = -1.j * (Hflav[0, 0] * eAmp + Hflav[0, 1] * muAmp + Hflav[0, 2] * tauAmp)
+    dmuAmpdx = -1.j * (Hflav[1, 0] * eAmp + Hflav[1, 1] * muAmp + Hflav[1, 2] * tauAmp)
+    dtauAmpdx = -1.j * (Hflav[2, 0] * eAmp + Hflav[2, 1] * muAmp + Hflav[2, 2] * tauAmp)
+
+    # Return an array of "d(Amplitude)/dx"
+    dAmpdx = [np.real(deAmpdx), np.imag(deAmpdx), np.real(dmuAmpdx), np.imag(dmuAmpdx), np.real(dtauAmpdx),
+              np.imag(dtauAmpdx)]
+    return dAmpdx
+
+
+def three_flavor_prob_any_moon_density(energy, y, z, density_function):  # energy in GeVs, y and z in km
+    r_moon = 1737  # km
+    x_final = np.sqrt(r_moon ** 2 - y ** 2 - z ** 2)
+    x0 = -x_final
+
+    x = np.linspace(x0, x_final, 1000)
+    del13 = np.pi / 3
+    solution = odeint(moon_deriv_three_flavor, turn_flavor_ratios_into_probability_amplitudes(2), x,
+                      args=(energy, del13, y, z, density_function))
+    ProbNuE = solution[:, 0] * solution[:, 0] + solution[:, 1] * solution[:, 1]
+    ProbNuMu = solution[:, 2] * solution[:, 2] + solution[:, 3] * solution[:, 3]
+    ProbNuTau = solution[:, 4] * solution[:, 4] + solution[:, 5] * solution[:, 5]
+    return x, ProbNuE, ProbNuMu, ProbNuTau, solution
+
+
+# uses monte carlo to simulate neutrinos of a certain energy passing through moon and travelling to earth
+# then returns the expected amount of electron, muon, and tau neutrinos respectively as a fraction of 1 (e.g. [.25, .25, .5] means a quarter are each electron and muon and then half will be tau)
+def monte_carlo_uniform_core(energy, core_mantle_density_ratio, core_radius):  # energy in GeVs
+    r_moon = 1737  # km
+
+    density_function = make_density_function_from_ratio(core_mantle_density_ratio, core_radius)
+
+    e_prob = 0
+    m_prob = 0
+    t_prob = 0
+    scale_factor = 0
+
+    radii = np.linspace(0, r_moon, 1000)
+    for radius in radii:
+        after_moon = three_flavor_prob_any_moon_density(energy, radius, 0, density_function)
+        e_prob += after_moon[1][-1] * radius
+        m_prob += after_moon[2][-1] * radius
+        t_prob += after_moon[3][-1] * radius
+        scale_factor += radius
+
+    # normalize probabilities
+    e_prob /= scale_factor
+    m_prob /= scale_factor
+    t_prob /= scale_factor
+
+    # now need to propogate to earth
+    at_earth_ratios = decoherence_travel_earth(e_prob, m_prob, t_prob)
+    return at_earth_ratios
 
 """
 
@@ -558,185 +744,3 @@ def make_scatter_plot(real_ratio, real_radius, num_neutrinos, num_scatters):
             num_neutrinos) + "_scatters" + str(num_scatters) + ".png")
 
 
-"""
-
-    Neutrino flavor oscillation simulation
-    
-"""
-
-
-#models neutrino travel to earth using approximation form gaisser textbook
-def decoherence_travel_earth(e_prob,m_prob,t_prob):
-    p = ([.55, .25, .2],
-         [0.25, 0.37, 0.38],
-         [0.2, 0.38, 0.42])
-    initial_ratios = ([e_prob,m_prob,t_prob])
-    product = np.matmul(p, initial_ratios)
-    return product
-
-
-# this returns a density function that gives lunar density as a function of x, y, z for a given core-mantle density ratio
-# x y and z are in km, and the center of the moon is 0,0,0
-def make_density_function_from_ratio(core_mantle_density_ratio, core_radius):  # core radius in km
-    r_moon = 1737 - 10  # km
-    r_moon_cm = r_moon * 10 ** 5
-    crust_to_core_distance = 1700 * 10 ** 5  # cm
-    r_core_cm = core_radius * 10 ** 5  # cm
-
-    m_moon = 7.342 * 10 ** 25  # grams
-    m_crust = (4 / 3) * math.pi * (r_moon_cm ** 3 - crust_to_core_distance ** 3)
-    m_moon_without_crust = m_moon - m_crust
-    V_core = (4 / 3) * math.pi * (r_core_cm ** 3)
-    V_mantle = (4 / 3) * math.pi * (crust_to_core_distance ** 3 - r_core_cm)
-
-    mantle_density = m_moon_without_crust / (V_core * core_mantle_density_ratio + V_mantle)
-    core_density = mantle_density * core_mantle_density_ratio
-
-    def density_function(x, y, z, d_core=core_density, d_mantle=mantle_density):
-        r = np.sqrt(x ** 2 + y ** 2 + z ** 2)
-        if r < core_radius:  # core
-            # print("core density" + str(d_core))
-            return d_core
-        if r < 1700:  # mantle
-            # print("mantle density" + str(d_mantle))
-            return d_mantle
-        else:
-            return 2.55  # crust density is known pretty accurately
-
-    return density_function
-
-#convers m to e nue ratio into list of probability amplitudes that we can use in our oscillation code
-#for now we assume 2 muon : 1 electron ratio
-def turn_flavor_ratios_into_probability_amplitudes(m_to_e_ratio):
-    #set initial amplitudes
-    m_amp = m_to_e_ratio
-    e_amp = 1
-    #normalize
-    initial_magnitude = math.sqrt(m_amp ** 2 + e_amp ** 2)
-
-    m_amp = m_amp / initial_magnitude
-    e_amp = e_amp / initial_magnitude
-
-    return [e_amp, 0, m_amp, 0, 0, 0]
-
-#this is modified code given to me by Prof. Hyde
-#simulates neutrino oscillation, but specialized for moon with variable density
-#y, z are fixed values, while neutrino travels parallel to x-axis
-# density function takes x, y, z (location relative to center of moon) and returns moon's density in g/cm^3
-
-# gives oscillation derivative, but specialized for moon.
-# x, y, z is location relative to center of moon
-# density function takes this location and returns a density
-
-# Define mass-squared difference (in eV^2) and mixing angle (rad)
-Th12 = 34.5*np.pi/180
-Th13 = 8.45*np.pi/180
-Th23 = 47.7*np.pi/180 # assuming normal mass ordering
-Dmsq21 = 7.55 * 10**(-5)
-Dmsq31 = 2.50 * 10**(-3) # assuming normal mass ordering
-
-def moon_deriv_three_flavor(amp,x,E_GeV,del13,y,z, density_function):
-
-    # Set mass values
-    mass1 = 0.0
-    mass2 = Dmsq21
-    mass3 = Dmsq31
-
-    ## Elements of flavor-basis Hamiltonian
-
-    # Mixing matrix (unitary change of basis between mass and flavor)
-    # Sines and Cosines of Mixing Angles
-    s12 = np.sin(Th12)
-    c12 = np.cos(Th12)
-    s23 = np.sin(Th23)
-    c23  = np.cos(Th23)
-    s13 = np.sin(Th13)
-    c13 = np.cos(Th13)
-
-    ## Elements of flavor-basis Hamiltonian
-
-    # Mixing matrix
-    U12 = np.array([(c12,s12,0),(-s12,c12,0),(0,0,1)])
-    U23 = np.array([(1,0,0),(0,c23,s23),(0,-s23,c23)])
-    U13 = np.array([(c13,0,s13*np.exp(0.-1.j*del13)),(0,1,0),(-s13*np.exp(0.+1.j*del13),0,c13)],dtype=complex)
-    Uint = np.dot(U13,U12)
-    U = np.dot(U23,Uint)
-
-    UT = np.transpose(U)
-    Udagger = np.conjugate(UT)
-
-    # Mass basis Hamiltonian
-    Hmass = np.array([(0,0,0),(0,mass2/(2*E_GeV),0),(0,0,mass3/(2*E_GeV))])
-
-    # Flavor-basis Hamiltonian, without matter
-    Hmid = np.dot(Hmass,Udagger)
-    Hflav0 = np.dot(U,Hmid)
-
-    # Full flavor-basis Hamiltonian. V_int represents the contribution to
-    # potential due to charged-current neutrino-electron interactions.
-    # Neutral current factors out of V_int and doesn't affect oscillations.
-    density = density_function(x, y, z)
-    vcc = density*0.000193
-    Vee = 1.0
-    Vint = vcc*np.array([(Vee,0,0),(0,0,0),(0,0,0)],dtype=complex)
-    Hflav = 5.1*(Hflav0 + Vint) # factor of 5.1 comes from units... see notes
-
-    # Input array "amp" is four values: the real and imaginary components of
-    # each flavor amplitude. Note that "j" instead of "i" is used.
-    eAmp = amp[0] + 1.j*amp[1]
-    muAmp = amp[2] + 1.j*amp[3]
-    tauAmp = amp[4] + 1.j*amp[5]
-
-    # This uses the (flavor-basis) Hamiltonian to define the time-evolution
-    deAmpdx = -1.j*(Hflav[0,0]*eAmp + Hflav[0,1]*muAmp + Hflav[0,2]*tauAmp)
-    dmuAmpdx = -1.j*(Hflav[1,0]*eAmp + Hflav[1,1]*muAmp + Hflav[1,2]*tauAmp)
-    dtauAmpdx = -1.j*(Hflav[2,0]*eAmp + Hflav[2,1]*muAmp + Hflav[2,2]*tauAmp)
-
-    # Return an array of "d(Amplitude)/dx"
-    dAmpdx = [np.real(deAmpdx),np.imag(deAmpdx),np.real(dmuAmpdx),np.imag(dmuAmpdx),np.real(dtauAmpdx),np.imag(dtauAmpdx)]
-    return dAmpdx
-
-
-def three_flavor_prob_any_moon_density(energy, y, z, density_function):  #energy in GeVs, y and z in km
-    r_moon = 1737  #km
-    x_final = np.sqrt(r_moon ** 2 - y ** 2 - z ** 2)
-    x0 = -x_final
-
-    x = np.linspace(x0, x_final, 1000)
-    del13 = np.pi / 3
-    solution = odeint(moon_deriv_three_flavor, turn_flavor_ratios_into_probability_amplitudes(2), x,
-                      args=(energy, del13, y, z, density_function))
-    ProbNuE = solution[:, 0] * solution[:, 0] + solution[:, 1] * solution[:, 1]
-    ProbNuMu = solution[:, 2] * solution[:, 2] + solution[:, 3] * solution[:, 3]
-    ProbNuTau = solution[:, 4] * solution[:, 4] + solution[:, 5] * solution[:, 5]
-    return x, ProbNuE, ProbNuMu, ProbNuTau, solution
-
-
-# uses monte carlo to simulate neutrinos of a certain energy passing through moon and travelling to earth
-# then returns the expected amount of electron, muon, and tau neutrinos respectively as a fraction of 1 (e.g. [.25, .25, .5] means a quarter are each electron and muon and then half will be tau)
-def monte_carlo_uniform_core(energy, core_mantle_density_ratio, core_radius):  # energy in GeVs
-    r_moon = 1737  # km
-
-    density_function = make_density_function_from_ratio(core_mantle_density_ratio, core_radius)
-
-    e_prob = 0
-    m_prob = 0
-    t_prob = 0
-    scale_factor = 0
-
-    radii = np.linspace(0, r_moon, 1000)
-    for radius in radii:
-        after_moon = three_flavor_prob_any_moon_density(energy, radius, 0, density_function)
-        e_prob += after_moon[1][-1] * radius
-        m_prob += after_moon[2][-1] * radius
-        t_prob += after_moon[3][-1] * radius
-        scale_factor += radius
-
-    # normalize probabilities
-    e_prob /= scale_factor
-    m_prob /= scale_factor
-    t_prob /= scale_factor
-
-    # now need to propogate to earth
-    at_earth_ratios = decoherence_travel_earth(e_prob, m_prob, t_prob)
-    return at_earth_ratios
