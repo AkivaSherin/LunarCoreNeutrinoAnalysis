@@ -572,13 +572,14 @@ def make_heatmap_confidence_interval_plot(real_ratio, real_radius, num_neutrinos
     # CHANGE FONTSIZE (fontsize=12)
     #first sets up the data
     real_data = make_mock_data(real_ratio, real_radius, num_neutrinos)
-    core_mantle_density_ratios = np.linspace(1, 15, 10)
-    core_radii = np.linspace(200, 600, 10)  # in km
+    mus = np.linspace(-10, 10, 10)  # eventually change to 100
+    sigmas = np.linspace(1, 10, 10)  # in km
+
 
     ratio_radius_test_statistic_tuples = []  # list of tuples with corresponding ratio, radius and test statistic
 
-    for core_mantle_density_ratio in core_mantle_density_ratios:
-        for core_radius in core_radii:
+    for core_mantle_density_ratio in mus:
+        for core_radius in sigmas:
             new_test_statistic = find_test_statistic(core_mantle_density_ratio, core_radius, real_data)
             ratio_radius_test_statistic_tuples.append((core_mantle_density_ratio, core_radius, new_test_statistic))
 
