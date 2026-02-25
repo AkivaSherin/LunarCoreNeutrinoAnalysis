@@ -583,8 +583,8 @@ def make_heatmap_confidence_interval_plot(real_ratio, real_radius, num_neutrinos
     # CHANGE FONTSIZE (fontsize=12)
     #first sets up the data
     real_data = make_mock_data(real_ratio, real_radius, num_neutrinos)
-    core_mantle_density_ratios = np.linspace(1, 15, 10)
-    core_radii = np.linspace(200, 600, 10)  # in km
+    core_mantle_density_ratios = np.linspace(1, 15, 100)
+    core_radii = np.linspace(200, 600, 100)  # in km
 
     ratio_radius_test_statistic_tuples = []  # list of tuples with corresponding ratio, radius and test statistic
 
