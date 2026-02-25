@@ -418,7 +418,7 @@ def gaussian_pdf_spline(find_mu, find_sigma):
 
     if found == False:
         # generate new spline...
-        print(r'Generating new energy pdf spline: mu =',
+        print(r'Generating new gaussian pdf spline: mu =',
               np.round(find_mu, 2), r'sigma =', np.round(find_sigma, 0))
         this_spline = make_gaussian_pdf(find_mu, find_sigma)
         # ... and add to catalog...
