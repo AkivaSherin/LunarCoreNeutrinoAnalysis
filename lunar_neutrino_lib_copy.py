@@ -420,7 +420,7 @@ def gaussian_pdf_spline(find_mu, find_sigma):
         # generate new spline...
         print(r'Generating new gaussian pdf spline: mu =',
               np.round(find_mu, 2), r'sigma =', np.round(find_sigma, 0))
-        this_spline = make_gaussian_pdf(find_mu, find_sigma)
+        this_spline = make_gaussian_pdf(find_mu, find_sigma, -100, 100)
         # ... and add to catalog...
         gaussian_pdf_splines_catalog['spline'].append(this_spline)
         gaussian_pdf_splines_catalog['mu'].append(np.round(find_mu, 2))
