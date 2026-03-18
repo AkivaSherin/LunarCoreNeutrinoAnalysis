@@ -396,6 +396,7 @@ except:
     starter_pdf = make_gaussian_pdf(0, 1, -100, 100)
     gaussian_pdf_splines_catalog['mu'] = [0]
     gaussian_pdf_splines_catalog['sigma'] = [1]
+    gaussian_pdf_splines_catalog['spline'] = [starter_pdf]
     with open('gaussian-pdf-splines-catalog.pkl', 'wb') as f:
             pickle.dump(gaussian_pdf_splines_catalog, f)
 
