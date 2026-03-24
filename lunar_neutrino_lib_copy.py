@@ -690,7 +690,7 @@ def make_heatmap_confidence_interval_plot(real_ratio, real_radius, num_neutrinos
     plt.legend(handles=custom_lines, loc='best')
 
     # Final touches
-    plt.xlabel(r"$\mu}$(True = " + str(real_ratio) + ")")
+    plt.xlabel(r"$\mu$(True = " + str(real_ratio) + ")")
     plt.ylabel(r"$\sigma$ (km) " + "(True = " + str(real_radius) + ")")
     plt.title("Heatmap Confidence Interval Plot Gaussian")
     plt.annotate('num neutrinos = ' + str(num_neutrinos), xy=(1.00, 1.02), xycoords='axes fraction', ha='center')
