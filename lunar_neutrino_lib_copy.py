@@ -649,7 +649,7 @@ def make_heatmap_confidence_interval_plot(real_ratio, real_radius, num_neutrinos
         return (1)
 
     contours = plt.contour(ratio_grid, radii_grid, test_statistics_grid,
-                           levels=[-100, biggest_pct_min_stat, middle_pct_min_stat, smallest_pct_min_stat, 100],
+                           levels=sorted([-100, biggest_pct_min_stat, middle_pct_min_stat, smallest_pct_min_stat, 100]),
                            colors=['k', 'k'],
                            linestyles=["--", "--", "-.", ":", "--"])
 
