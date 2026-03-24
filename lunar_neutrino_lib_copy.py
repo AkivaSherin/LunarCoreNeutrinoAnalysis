@@ -591,7 +591,7 @@ def make_heatmap_confidence_interval_plot(real_ratio, real_radius, num_neutrinos
     smallest_pct_min_stat, middle_pct_min_stat, biggest_pct_min_stat = find_confidence_interval_minimum_test_statistics(percentiles,
                                                                                                  best_fit_density_ratio,
                                                                                                  best_fit_radius,
-                                                                                                 1000, num_neutrinos)
+                                                                                                 100, num_neutrinos)
 
 
     #now plotting the data
