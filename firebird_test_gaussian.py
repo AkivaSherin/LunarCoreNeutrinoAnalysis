@@ -2,8 +2,8 @@ import importlib
 lunar_neutrino_lib_copy = importlib.import_module("lunar_neutrino_lib_copy")
 importlib.reload(lunar_neutrino_lib_copy)
 from lunar_neutrino_lib_copy import *
-ratios = [-5, 5] # mus
-radii = [1, 10] # sigma
+ratios = [-50, 0, 50] # mus
+radii = [1, 10, 19] # sigma
 
 for ratio in ratios:
     for radius in radii:

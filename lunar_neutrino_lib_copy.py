@@ -489,8 +489,8 @@ def find_test_statistic(mu_test_hypothesis, sigma_test_hypothesis, data):
 # then returns the best fit density ratio and radius by maximizing test statistic across a range of parameters
 # data is a list of log neutrino energies
 def find_best_fit_parameters(data):
-    mus = np.linspace(-10, 10, 10) #eventually change to 100
-    sigmas = np.linspace(1, 10, 10)  # in km
+    mus = np.linspace(-100, 100, 10) #eventually change to 100
+    sigmas = np.linspace(1, 20, 10)  # in km
 
     first_test = True  # whether or not we have tested a pair of parameters yet
     best_fit_test_statistic = 0
@@ -573,8 +573,8 @@ def make_heatmap_confidence_interval_plot(real_ratio, real_radius, num_neutrinos
     # CHANGE FONTSIZE (fontsize=12)
     #first sets up the data
     real_data = make_mock_data(real_ratio, real_radius, num_neutrinos)
-    mus = np.linspace(-10, 10, 10)  # eventually change to 100
-    sigmas = np.linspace(1, 10, 10)  # in km
+    mus = np.linspace(-100, 100, 10)  # eventually change to 100
+    sigmas = np.linspace(1, 20, 10)  # in km
 
 
     ratio_radius_test_statistic_tuples = []  # list of tuples with corresponding ratio, radius and test statistic
