@@ -9,6 +9,28 @@ from scipy.interpolate import interp1d
 import pickle
 from scipy.interpolate import griddata
 from scipy.integrate import odeint, quad
+import time
+from collections import defaultdict
+
+TIMINGS = defaultdict(float)
+CALL_COUNTS = defaultdict(int)
+
+def timed_call(name, func, *args, **kwargs):
+    start = time.perf_counter()
+    result = func(*args, **kwargs)
+    elapsed = time.perf_counter() - start
+    TIMINGS[name] += elapsed
+    CALL_COUNTS[name] += 1
+    return result
+
+def print_timing_summary():
+    print("\n=== TIMING SUMMARY ===")
+    for name in sorted(TIMINGS, key=TIMINGS.get, reverse=True):
+        total = TIMINGS[name]
+        count = CALL_COUNTS[name]
+        avg = total / count if count else 0
+        print(f"{name:45s} total={total:10.4f}s   calls={count:6d}   avg={avg:10.6f}s")
+    print("======================\n")
 
 """
 
@@ -463,13 +485,19 @@ def make_mock_data(mu, sigma, num_neutrinos):
 # finds log likelihood of data for a given model (density ratio and radius) using muon neutrino pdfs
 # data is a list of log neutrino energies
 def find_log_likelihood(mu, sigma, data):
-    muon_pdf = gaussian_pdf_spline(mu, sigma)
+    start = time.perf_counter()
+
+    muon_pdf = timed_call("gaussian_pdf_spline", gaussian_pdf_spline, mu, sigma)
+
     log_likelihood = 0
     for i in range(len(data)):
         log_likelihood += np.log10(muon_pdf(data[i]))
 
-    return log_likelihood
+    elapsed = time.perf_counter() - start
+    TIMINGS["find_log_likelihood_total"] += elapsed
+    CALL_COUNTS["find_log_likelihood_total"] += 1
 
+    return log_likelihood
 
 # this function finds the test statistic for a given model (density ratio and radius) and data set
 # test statistic is defined as lambda = 2 log([likelihood of test hypothesis] / [likelihood of null hypothesis])
@@ -477,13 +505,30 @@ def find_log_likelihood(mu, sigma, data):
 # data is a list of log neutrino energies
 
 def find_test_statistic(mu_test_hypothesis, sigma_test_hypothesis, data):
-    test_hypothesis_log_likelihood = find_log_likelihood(mu_test_hypothesis,
-                                                         sigma_test_hypothesis, data)
-    null_hypothesis_log_likelihood = find_log_likelihood(0, 1, data)
+    start = time.perf_counter()
+
+    test_hypothesis_log_likelihood = timed_call(
+        "find_log_likelihood (test hypothesis)",
+        find_log_likelihood,
+        mu_test_hypothesis,
+        sigma_test_hypothesis,
+        data
+    )
+    null_hypothesis_log_likelihood = timed_call(
+        "find_log_likelihood (null hypothesis)",
+        find_log_likelihood,
+        0,
+        1,
+        data
+    )
 
     test_statistic = 2 * (test_hypothesis_log_likelihood - null_hypothesis_log_likelihood)
-    return test_statistic
 
+    elapsed = time.perf_counter() - start
+    TIMINGS["find_test_statistic_total"] += elapsed
+    CALL_COUNTS["find_test_statistic_total"] += 1
+
+    return test_statistic
 
 # takes in a list of log detected neutrino energies
 # then returns the best fit density ratio and radius by maximizing test statistic across a range of parameters
@@ -492,26 +537,47 @@ def find_best_fit_parameters(data):
     mus = np.linspace(-100, 100, 10) #eventually change to 100
     sigmas = np.linspace(1, 20, 10)  # in km
 
-    first_test = True  # whether or not we have tested a pair of parameters yet
-    best_fit_test_statistic = 0
-    best_fit_density_ratio = 0
-    best_fit_radius = 0
+    def find_best_fit_parameters(data):
+        start = time.perf_counter()
 
-    for core_mantle_density_ratio in mus:
-        for core_radius in sigmas:
-            if first_test:  # if first set of parameters, they are automatically the best
-                best_fit_density_ratio = core_mantle_density_ratio
-                best_fit_radius = core_radius
-                best_fit_test_statistic = find_test_statistic(core_mantle_density_ratio, core_radius, data)
-                first_test = False
-            else:
-                new_test_statistic = find_test_statistic(core_mantle_density_ratio, core_radius, data)
-                if (new_test_statistic > best_fit_test_statistic):
+        mus = np.linspace(-100, 100, 10)
+        sigmas = np.linspace(1, 20, 10)
+
+        first_test = True
+        best_fit_test_statistic = 0
+        best_fit_density_ratio = 0
+        best_fit_radius = 0
+
+        for core_mantle_density_ratio in mus:
+            for core_radius in sigmas:
+                if first_test:
                     best_fit_density_ratio = core_mantle_density_ratio
                     best_fit_radius = core_radius
+                    best_fit_test_statistic = timed_call(
+                        "find_test_statistic",
+                        find_test_statistic,
+                        core_mantle_density_ratio,
+                        core_radius,
+                        data
+                    )
+                    first_test = False
+                else:
+                    new_test_statistic = timed_call(
+                        "find_test_statistic",
+                        find_test_statistic,
+                        core_mantle_density_ratio,
+                        core_radius,
+                        data
+                    )
+                    if new_test_statistic > best_fit_test_statistic:
+                        best_fit_density_ratio = core_mantle_density_ratio
+                        best_fit_radius = core_radius
+                        best_fit_test_statistic = new_test_statistic
 
-    return best_fit_density_ratio, best_fit_radius, best_fit_test_statistic
-
+        elapsed = time.perf_counter() - start
+        TIMINGS["find_best_fit_parameters"] += elapsed
+        CALL_COUNTS["find_best_fit_parameters"] += 1
+        return best_fit_density_ratio, best_fit_radius, best_fit_test_statistic
 
 # create many null hypothesis mock data sets for find_confidence_interval function
 # returns a list of mock data sets of log neutrino energies
@@ -543,56 +609,85 @@ def find_significance(hypothesis_test_statistic, num_mock_data_sets, neutrinos_p
 # given a test hypothesis ratio and radius, calculates the minimum test statistic to consider for a given confidence interval
 def find_confidence_interval_minimum_test_statistics(percentiles, test_hypothesis_mu, test_hypothesis_sigma,
                                                     num_mock_data_sets, neutrinos_per_data_set):
-    test_hypothesis_data_sets = make_mock_data_sets(test_hypothesis_mu, test_hypothesis_sigma,
-                                                    num_mock_data_sets, neutrinos_per_data_set)
+    start = time.perf_counter()
+
+    test_hypothesis_data_sets = timed_call(
+        "make_mock_data_sets",
+        make_mock_data_sets,
+        test_hypothesis_mu,
+        test_hypothesis_sigma,
+        num_mock_data_sets,
+        neutrinos_per_data_set
+    )
 
     best_fit_mus = []
     best_fit_sigmas = []
     best_fit_test_statistics = []
 
-    for data_set in test_hypothesis_data_sets:
-        new_density_ratio, new_radius, new_test_statistic = find_best_fit_parameters(
-            data_set)  # am i finding test statistic correctly???
+    loop_start = time.perf_counter()
+    for i, data_set in enumerate(test_hypothesis_data_sets):
+        if i % 10 == 0:
+            print(f"confidence-interval progress: {i}/{len(test_hypothesis_data_sets)}")
+        new_density_ratio, new_radius, new_test_statistic = timed_call(
+            "find_best_fit_parameters (inside confidence interval)",
+            find_best_fit_parameters,
+            data_set
+        )
         best_fit_mus.append(new_density_ratio)
         best_fit_sigmas.append(new_radius)
         best_fit_test_statistics.append(new_test_statistic)
+    print(f"confidence interval best-fit loop took {time.perf_counter() - loop_start:.4f}s")
 
     minimum_test_statistics = []
-
     for percentile in percentiles:
         minimum_test_statistics.append(np.percentile(best_fit_test_statistics, 100 - percentile))
 
+    elapsed = time.perf_counter() - start
+    TIMINGS["find_confidence_interval_minimum_test_statistics"] += elapsed
+    CALL_COUNTS["find_confidence_interval_minimum_test_statistics"] += 1
 
     return tuple(minimum_test_statistics)
-
 
 
 # makes a confidence interval plot, but instead creates three contours (at 30, 60 and 90 pct confidence)
 # this is overlayed on a heatmap showing the test statistic of each parameter combination
 def make_heatmap_confidence_interval_plot(real_ratio, real_radius, num_neutrinos, percentiles=(30,60,90), save_figure=True):
+    overall_start = time.perf_counter()
     # CHANGE FONTSIZE (fontsize=12)
     #first sets up the data
-    real_data = make_mock_data(real_ratio, real_radius, num_neutrinos)
+    real_data = timed_call("make_mock_data (top-level real_data)",
+                           make_mock_data, real_ratio, real_radius, num_neutrinos)
     mus = np.linspace(-100, 100, 10)  # eventually change to 100
     sigmas = np.linspace(1, 20, 10)  # in km
 
+    ratio_radius_test_statistic_tuples = []
 
-    ratio_radius_test_statistic_tuples = []  # list of tuples with corresponding ratio, radius and test statistic
+    grid_start = time.perf_counter()
 
     for core_mantle_density_ratio in mus:
         for core_radius in sigmas:
             new_test_statistic = find_test_statistic(core_mantle_density_ratio, core_radius, real_data)
             ratio_radius_test_statistic_tuples.append((core_mantle_density_ratio, core_radius, new_test_statistic))
 
+    print(f"heatmap grid test-stat loop took {time.perf_counter() - grid_start:.4f}s")
+
     ratios, radii, test_statistics = zip(*ratio_radius_test_statistic_tuples)
 
-    best_fit_density_ratio, best_fit_radius, best_fit_test_statistic = find_best_fit_parameters(real_data)
+    best_fit_density_ratio, best_fit_radius, best_fit_test_statistic = timed_call(
+        "find_best_fit_parameters (top-level real_data)",
+        find_best_fit_parameters,
+        real_data
+    )
 
-    smallest_pct_min_stat, middle_pct_min_stat, biggest_pct_min_stat = find_confidence_interval_minimum_test_statistics(percentiles,
-                                                                                                 best_fit_density_ratio,
-                                                                                                 best_fit_radius,
-                                                                                                 1000, num_neutrinos)
-
+    smallest_pct_min_stat, middle_pct_min_stat, biggest_pct_min_stat = timed_call(
+        "find_confidence_interval_minimum_test_statistics",
+        find_confidence_interval_minimum_test_statistics,
+        percentiles,
+        best_fit_density_ratio,
+        best_fit_radius,
+        100,
+        num_neutrinos
+    )
 
     #now plotting the data
 
@@ -631,7 +726,9 @@ def make_heatmap_confidence_interval_plot(real_ratio, real_radius, num_neutrinos
     radius_points = np.linspace(min(radii), max(radii), 100)
     ratio_grid, radii_grid = np.meshgrid(ratio_points, radius_points)
 
+    interp_start = time.perf_counter()
     test_statistics_grid = griddata((ratios, radii), test_statistics, (ratio_grid, radii_grid), method='linear')
+    print(f"griddata interpolation took {time.perf_counter() - interp_start:.4f}s")
 
     linestyles_dict = {
         -100: '--',
@@ -702,11 +799,13 @@ def make_heatmap_confidence_interval_plot(real_ratio, real_radius, num_neutrinos
                  fontsize=10,
                  arrowprops=dict(arrowstyle='->', color='black'))
 
+    print(f"make_heatmap_confidence_interval_plot finished in {time.perf_counter() - overall_start:.4f}s")
     if save_figure:
+        save_start = time.perf_counter()
         plt.savefig(
             "gaussian_heatmap_confidence_interval_plot_mu" + str(real_ratio) + "_sigma" + str(real_radius) + "_neutrinos" + str(
                 num_neutrinos) + "_contours" + "_".join(map(str, percentiles)) + ".png")
-    #plt.show()
+        print(f"savefig took {time.perf_counter() - save_start:.4f}s")
 
 
 def make_scatter_plot(real_ratio, real_radius, num_neutrinos, num_scatters):
