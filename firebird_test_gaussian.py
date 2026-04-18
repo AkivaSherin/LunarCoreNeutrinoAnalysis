@@ -12,6 +12,12 @@ for ratio in ratios:
     for radius in radii:
         make_heatmap_confidence_interval_plot(ratio, radius, 10)
         print("made a heatmap 10 neutrinos")
+
+
+for ratio in ratios:
+    for radius in radii:
+        make_heatmap_confidence_interval_plot(ratio, radius, 10)
+        print("made a heatmap 10 neutrinos")
 """
 for ratio in ratios:
     for radius in radii:
