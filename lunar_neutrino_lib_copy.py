@@ -534,50 +534,46 @@ def find_test_statistic(mu_test_hypothesis, sigma_test_hypothesis, data):
 # then returns the best fit density ratio and radius by maximizing test statistic across a range of parameters
 # data is a list of log neutrino energies
 def find_best_fit_parameters(data):
-    mus = np.linspace(-100, 100, 10) #eventually change to 100
-    sigmas = np.linspace(1, 20, 10)  # in km
+    start = time.perf_counter()
 
-    def find_best_fit_parameters(data):
-        start = time.perf_counter()
+    mus = np.linspace(-100, 100, 10)
+    sigmas = np.linspace(1, 20, 10)
 
-        mus = np.linspace(-100, 100, 10)
-        sigmas = np.linspace(1, 20, 10)
+    first_test = True
+    best_fit_test_statistic = 0
+    best_fit_density_ratio = 0
+    best_fit_radius = 0
 
-        first_test = True
-        best_fit_test_statistic = 0
-        best_fit_density_ratio = 0
-        best_fit_radius = 0
-
-        for core_mantle_density_ratio in mus:
-            for core_radius in sigmas:
-                if first_test:
+    for core_mantle_density_ratio in mus:
+        for core_radius in sigmas:
+            if first_test:
+                best_fit_density_ratio = core_mantle_density_ratio
+                best_fit_radius = core_radius
+                best_fit_test_statistic = timed_call(
+                    "find_test_statistic",
+                    find_test_statistic,
+                    core_mantle_density_ratio,
+                    core_radius,
+                    data
+                )
+                first_test = False
+            else:
+                new_test_statistic = timed_call(
+                    "find_test_statistic",
+                    find_test_statistic,
+                    core_mantle_density_ratio,
+                    core_radius,
+                    data
+                )
+                if new_test_statistic > best_fit_test_statistic:
                     best_fit_density_ratio = core_mantle_density_ratio
                     best_fit_radius = core_radius
-                    best_fit_test_statistic = timed_call(
-                        "find_test_statistic",
-                        find_test_statistic,
-                        core_mantle_density_ratio,
-                        core_radius,
-                        data
-                    )
-                    first_test = False
-                else:
-                    new_test_statistic = timed_call(
-                        "find_test_statistic",
-                        find_test_statistic,
-                        core_mantle_density_ratio,
-                        core_radius,
-                        data
-                    )
-                    if new_test_statistic > best_fit_test_statistic:
-                        best_fit_density_ratio = core_mantle_density_ratio
-                        best_fit_radius = core_radius
-                        best_fit_test_statistic = new_test_statistic
+                    best_fit_test_statistic = new_test_statistic
 
-        elapsed = time.perf_counter() - start
-        TIMINGS["find_best_fit_parameters"] += elapsed
-        CALL_COUNTS["find_best_fit_parameters"] += 1
-        return best_fit_density_ratio, best_fit_radius, best_fit_test_statistic
+    elapsed = time.perf_counter() - start
+    TIMINGS["find_best_fit_parameters"] += elapsed
+    CALL_COUNTS["find_best_fit_parameters"] += 1
+    return best_fit_density_ratio, best_fit_radius, best_fit_test_statistic
 
 # create many null hypothesis mock data sets for find_confidence_interval function
 # returns a list of mock data sets of log neutrino energies
