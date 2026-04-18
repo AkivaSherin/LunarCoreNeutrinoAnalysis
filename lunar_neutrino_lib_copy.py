@@ -742,12 +742,23 @@ def make_heatmap_confidence_interval_plot(real_ratio, real_radius, num_neutrinos
             real_radius) + "_neutrinos" + str(num_neutrinos))
         return (1)
 
+    levels = np.array(
+        [-100, smallest_pct_min_stat, middle_pct_min_stat, biggest_pct_min_stat, 100],
+        dtype=float
+    )
+    levels = levels[np.isfinite(levels)]  # remove nan/inf
+    levels = np.unique(np.sort(levels))  # sort and remove duplicates
+
     contours = plt.contour(ratio_grid, radii_grid, test_statistics_grid,
-                           levels=sorted([-100, biggest_pct_min_stat, middle_pct_min_stat, smallest_pct_min_stat, 100]),
+                           levels=levels,
                            colors=['k', 'k'],
                            linestyles=["--", "--", "-.", ":", "--"])
 
-    plt.clabel(contours, inline=True, fontsize=8)
+    if len(levels) >= 2:
+        try:
+            plt.clabel(contours, inline=True, fontsize=8)
+        except Exception as e:
+            print("Skipping clabel due to error:", e)
 
     # finding best fit parameters
     max_test_statistic_index = test_statistics.index(max_test_statistic)
@@ -784,7 +795,7 @@ def make_heatmap_confidence_interval_plot(real_ratio, real_radius, num_neutrinos
     plt.legend(handles=custom_lines, loc='best')
 
     # Final touches
-    plt.xlabel(r"$\mu$(True = " + str(real_ratio) + ")")
+    plt.xlabel(r"$\mu$ (True = " + str(real_ratio) + ")")
     plt.ylabel(r"$\sigma$ (km) " + "(True = " + str(real_radius) + ")")
     plt.title("Heatmap Confidence Interval Plot Gaussian")
     plt.annotate('num neutrinos = ' + str(num_neutrinos), xy=(1.00, 1.02), xycoords='axes fraction', ha='center')
