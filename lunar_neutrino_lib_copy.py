@@ -472,9 +472,10 @@ def make_mock_data(mu, sigma, num_neutrinos):
                           sigma)  # make_muon_detections_pdf(core_mantle_density_ratio, core_radius)
 
     log_energies = []
+    max_gaussian_height = 1 / (sigma * np.sqrt(2 * np.pi))
     while len(log_energies) < num_neutrinos:
-        random_log_energy = random.uniform(-1, 1)
-        random_probability = random.uniform(0, 3)
+        random_log_energy = random.uniform(mu -3 * sigma, mu + 3 * sigma)
+        random_probability = random.uniform(0, max_gaussian_height)
 
         if random_probability < pdf(random_log_energy):
             log_energies.append(random_log_energy)
