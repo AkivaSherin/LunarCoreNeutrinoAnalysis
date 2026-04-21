@@ -10,8 +10,8 @@ radii = [10, 19] # sigma
 
 for ratio in ratios:
     for radius in radii:
-        make_heatmap_confidence_interval_plot(ratio, radius, 100)
-        print("made a heatmap 10 neutrinos")
+        make_heatmap_confidence_interval_plot(ratio, radius, 1000)
+        print("made a heatmap 1000 neutrinos")
 
 
 print_timing_summary()
