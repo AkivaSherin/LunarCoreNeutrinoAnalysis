@@ -491,8 +491,11 @@ def find_log_likelihood(mu, sigma, data):
     muon_pdf = timed_call("gaussian_pdf_spline", gaussian_pdf_spline, mu, sigma)
 
     log_likelihood = 0
+    eps = 1e-300
     for i in range(len(data)):
-        log_likelihood += np.log10(muon_pdf(data[i]))
+        pdf_val = muon_pdf(data[i])
+        pdf_val = max(float(pdf_val), eps) # dont wanna take the log of 0
+        log_likelihood += np.log10(pdf_val)
 
     elapsed = time.perf_counter() - start
     TIMINGS["find_log_likelihood_total"] += elapsed
