@@ -735,12 +735,10 @@ def make_heatmap_confidence_interval_plot(real_ratio, real_radius, num_neutrinos
         100: '-'
     }
 
-    # contour levels must be increasing
-    if (middle_pct_min_stat <= biggest_pct_min_stat) or (smallest_pct_min_stat <= middle_pct_min_stat):
-        print("error: contour levels werent increasing")
-        print("tried to make" + "heatmap_confidence_interval_plot_ratio" + str(real_ratio) + "_radius" + str(
-            real_radius) + "_neutrinos" + str(num_neutrinos))
-        return (1)
+    print("smallest, middle, biggest =", smallest_pct_min_stat, middle_pct_min_stat, biggest_pct_min_stat)
+    print("raw contour levels =", [-100, biggest_pct_min_stat, middle_pct_min_stat, smallest_pct_min_stat, 100])
+    print("any nan in grid?", np.isnan(test_statistics_grid).any())
+    print("all nan in grid?", np.isnan(test_statistics_grid).all())
 
     levels = np.array(
         [-100, smallest_pct_min_stat, middle_pct_min_stat, biggest_pct_min_stat, 100],
