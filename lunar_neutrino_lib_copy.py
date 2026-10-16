@@ -495,7 +495,7 @@ def find_log_likelihood(mu, sigma, data):
     for i in range(len(data)):
         pdf_val = muon_pdf(data[i])
         pdf_val = max(float(pdf_val), eps) # dont wanna take the log of 0
-        log_likelihood += np.log10(pdf_val)
+        log_likelihood += np.log(pdf_val)
 
     elapsed = time.perf_counter() - start
     TIMINGS["find_log_likelihood_total"] += elapsed

@@ -476,7 +476,7 @@ def find_log_likelihood(core_mantle_density_ratio, core_radius, data):
     muon_pdf = muon_pdf_spline(core_mantle_density_ratio, core_radius)
     log_likelihood = 0
     for i in range(len(data)):
-        log_likelihood += np.log10(muon_pdf(data[i]))
+        log_likelihood += np.log(muon_pdf(data[i]))
 
     return log_likelihood
 
